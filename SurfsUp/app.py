@@ -128,6 +128,40 @@ def stations():
     return jsonify(all_stations)
 
 
+@app.route("/api/v1.0/tobs")
+def tobs():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # Query all dates and temperature (tobs) observations for most-active station for the
+    # previous year of data
+
+    # Sort Measure data by descending date and filter to most active station (USC00519281)
+    # Return most recent date for station (in case station has different most recent measurement)
+    recent_USC00519281_date = session.query(Measure).order_by((Measure.date).desc())\
+        .filter(Measure.station == "USC00519281").first()
+
+    # Calculate the date one year from the last date in data set for station USC00519281.
+    yr_ago = (dt.strptime(recent_USC00519281_date.date, '%Y-%m-%d')) + \
+        relativedelta(years=-1)
+
+    # Perform query for last year of data for station USC00519281
+    last_yr_temp = session.query(Measure).filter(Measure.date >= yr_ago)\
+        .filter(Measure.station == "USC00519281").order_by((Measure.date).desc()).all()
+
+    # Close session
+    session.close()
+
+    USC00519281_data = []
+    for row in last_yr_temp:
+        station_data = {}
+        station_data["date"] = row.date
+        station_data["temperature"] = row.tobs
+        USC00519281_data.append(station_data)
+
+    return jsonify(USC00519281_data)
+
+
 @app.route("/api/v1.0/precipitation_b")
 def precipitation_b():
     # Create our session (link) from Python to the DB
