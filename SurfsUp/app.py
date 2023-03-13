@@ -41,13 +41,21 @@ app = Flask(__name__)
 def welcome():
     """List all available api routes."""
     return (
-        f"Available Routes:<br/>"
+        f"Available Routes:<br/><br/>"
         f"/api/v1.0/precipitation<br/>"
-        f"/api/v1.0/precipitation_b<br/>"
+        f"(returns each precipitation value for each date over last 12 months of the dataset. Note not all stations have a measurement for each date so the number of values per date is variable.)<br/><br/>"
+        f"/api/v1.0/sumprecipitation<br/>"
+        f"(returns daily sum of precipitation across all stations by date over last 12 months of the dataset)<br/><br/>"
         f"/api/v1.0/stations<br/>"
+        f"(returns elevation, id, latitude, longitude, name and station codes)<br/><br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/<start><br/>"
-        f"/api/v1.0/<start>/<end><br/>"
+        f"(includes daily temperature values by date for most active station over last 12 months of the dataset)<br/><br/>"
+        f"/api/v1.0/start/<b>'start'</b><br/>"
+        f"(replace <b>'start'</b> with date in format <b>yyyy-mm-dd</b><br/>"
+        f"returns minimum, average and max temperature for date range starting with specified date)<br/><br/>"
+        f"/api/v1.0/start_end/<b>'start_end'</b><br/>"
+        f"(replace <b>'start_end'</b> with date range in format <b>yyyy-mm-dd-yyyy-mm-dd</b><br/>"
+        f"returns minimum, average and max temperature for date range specified)<br/><br/>"
     )
 
 
@@ -99,6 +107,52 @@ def precipitation():
             valuelist.append(precip[i])
 
     return jsonify(precip_dict)
+
+
+@app.route("/api/v1.0/sumprecipitation")
+def sumprecipitation():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # Then, extract most recent date by sorting dates in descending order and returning the first value
+    recent_date = session.query(Measure).order_by(
+        (Measure.date).desc()).first()
+    recent_date.date
+
+   # Calculate the date one year from the last date in data set.
+    yr_ago = (dt.strptime(recent_date.date, '%Y-%m-%d')) + \
+        relativedelta(years=-1)
+
+    # Perform a query to retrieve the data and precipitation scores
+    last_yr_precip = session.query(Measure).filter(
+        Measure.date >= yr_ago).order_by((Measure.date).desc()).all()
+    measuredate = []
+    precip = []
+
+    for row in last_yr_precip:
+        # print(row.date, row.prcp)
+        measuredate.append(row.date)
+        precip.append(row.prcp)
+
+    # Save the query results as a Pandas DataFrame and set the index to the date column
+    last_yr_precip_df = pd.DataFrame({'Date': measuredate,
+                                      'Precipitation': precip}).set_index('Date')
+
+    # Sort the dataframe by date
+    last_yr_precip_df.sort_index(inplace=True)
+
+    # Remove rows with NaN prcp values and print df
+    clean_last_year = last_yr_precip_df.dropna()
+
+    # Groupby 'Date' and print df
+    gb = clean_last_year.groupby(
+        'Date')['Precipitation'].sum().reset_index(name='Precipitation')
+
+    # Use dictionary comprehension to build dateprecip dictionary from gb dataframe
+    dateprecip = {gb['Date'].to_list()[i]: gb['Precipitation'].to_list()[i]
+                  for i in range(len(gb['Date'].to_list()))}
+
+    return jsonify(dateprecip)
 
 
 @app.route("/api/v1.0/stations")
@@ -162,65 +216,80 @@ def tobs():
     return jsonify(USC00519281_data)
 
 
-@app.route("/api/v1.0/precipitation_b")
-def precipitation_b():
-    # Create our session (link) from Python to the DB
+@app.route("/api/v1.0/start/<start>")
+def temp_analysis_start(start):
+    """ Fetch min, avg and temperature for range starting with start date
+    supplied by the user"""
+
     session = Session(engine)
 
-    # extract most recent date by sorting dates in descending order and returning the first value
-    recent_date = session.query(Measure).order_by(
-        (Measure.date).desc()).first()
-    recent_date.date
+    results = session.query(Station.id, Station.station, Station.name,
+                            Station.latitude, Station.longitude, Station.elevation)
 
-    # Design a query to retrieve the last 12 months of precipitation data and plot the results.
-    # Starting from the most recent data point in the database.
+    range_data = []
+    sel = [func.min(Measure.tobs),
+           func.avg(Measure.tobs),
+           func.max(Measure.tobs)]
 
-    # Calculate the date one year from the last date in data set.
-    yr_ago = (dt.strptime(recent_date.date, '%Y-%m-%d')) + \
-        relativedelta(years=-1)
+    for id, station, name, latitude, longitude, elevation in results:
+        station_dict = {}
+        station_dict["id"] = id
+        station_dict["station"] = station
+        station_dict["name"] = name
+        station_dict["latitude"] = latitude
+        station_dict["longitude"] = longitude
+        station_dict["elevation"] = elevation
+        station_stats = []
+        station_stats = session.query(*sel).\
+            filter(Measure.date >= start).\
+            filter(Measure.station == station).all()
+        station_dict["TMIN"] = station_stats[0][0]
+        station_dict["TAVG"] = station_stats[0][1]
+        station_dict["TMAX"] = station_stats[0][2]
+        range_data.append(station_dict)
 
-    # Perform a query to retrieve the data and precipitation scores
-    last_yr_precip = session.query(Measure).filter(
-        Measure.date >= yr_ago).order_by((Measure.date).desc()).all()
+    session.close()
+    return jsonify(range_data)
 
-    session.close
 
-    measuredate = []
-    precip = []
+@app.route("/api/v1.0/start_end/<start_end>")
+def temp_analysis_startend(start_end):
+    """ Fetch min, avg and temperature for range starting with start date
+    supplied by the user"""
 
-    for row in last_yr_precip:
-        # print(row.date, row.prcp)
-        measuredate.append(row.date)
-        precip.append(row.prcp)
+    session = Session(engine)
 
-    # Save the query results as a Pandas DataFrame and set the index to the date column
-    last_yr_precip_df = pd.DataFrame({'Date': measuredate,
-                                      'Precipitation': precip}).set_index('Date')
+    start = start_end[:10]
+    end = start_end[-10:]
 
-    # Sort the dataframe by date
-    last_yr_precip_df.sort_index(inplace=True)
+    results = session.query(Station.id, Station.station, Station.name,
+                            Station.latitude, Station.longitude, Station.elevation)
 
-    # Remove rows with NaN prcp values and print df
-    clean_last_year = last_yr_precip_df.dropna()
+    range_data = []
+    sel = [func.min(Measure.tobs),
+           func.avg(Measure.tobs),
+           func.max(Measure.tobs)]
 
-    # Groupby 'Date' and print df
-    gb = clean_last_year.groupby(
-        'Date')['Precipitation'].sum().reset_index(name='Precipitation')
+    for id, station, name, latitude, longitude, elevation in results:
+        station_dict = {}
+        station_dict["id"] = id
+        station_dict["station"] = station
+        station_dict["name"] = name
+        station_dict["latitude"] = latitude
+        station_dict["longitude"] = longitude
+        station_dict["elevation"] = elevation
+        station_stats = []
+        station_stats = session.query(*sel).\
+            filter(Measure.date <= end).\
+            filter(Measure.date >= start).\
+            filter(Measure.station == station).all()
+        station_dict["TMIN"] = station_stats[0][0]
+        station_dict["TAVG"] = station_stats[0][1]
+        station_dict["TMAX"] = station_stats[0][2]
+        range_data.append(station_dict)
 
-    clean_meas_date = gb['Date'].to_list()
-    clean_precip = gb['Precipitation'].to_list()
-
-    # clean_meas_date = []
-    # clean_precip = []
-
-    precip_dict = {}
-    for date in clean_meas_date:
-        for value in clean_precip:
-            precip_dict[date] = value
-            precip.remove(value)
-            break
-
-    return jsonify(precip_dict)
+    session.close()
+    return jsonify(range_data)
 
 
 if __name__ == '__main__':
