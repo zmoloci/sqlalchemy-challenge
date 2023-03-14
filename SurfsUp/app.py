@@ -40,6 +40,8 @@ app = Flask(__name__)
 @app.route("/")
 def welcome():
     """List all available api routes."""
+    # included some additional information re: each route here. This is especially helpful in defining the format
+    # of the last two routes.
     return (
         f"Available Routes:<br/><br/>"
         f"/api/v1.0/precipitation<br/>"
@@ -146,7 +148,7 @@ def sumprecipitation():
 
     # Groupby 'Date' and print df
     gb = clean_last_year.groupby(
-        'Date')['Precipitation'].sum().reset_index(name='Precipitation')
+        'Date')['Precipitation'].sum().round(2).reset_index(name='Precipitation')
 
     # Use dictionary comprehension to build dateprecip dictionary from gb dataframe
     dateprecip = {gb['Date'].to_list()[i]: gb['Precipitation'].to_list()[i]
@@ -206,6 +208,7 @@ def tobs():
     # Close session
     session.close()
 
+    # Build list of dictionaries
     USC00519281_data = []
     for row in last_yr_temp:
         station_data = {}
@@ -221,16 +224,22 @@ def temp_analysis_start(start):
     """ Fetch min, avg and temperature for range starting with start date
     supplied by the user"""
 
+    # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    # Query all stations (including id, station, name, latitude, longitude, elevation)
     results = session.query(Station.id, Station.station, Station.name,
                             Station.latitude, Station.longitude, Station.elevation)
 
+    # Create empty list to be populated with dictionaries
     range_data = []
+
+    # Define function for TMIN, TAVG, TMAX from tobs data in Measure
     sel = [func.min(Measure.tobs),
            func.avg(Measure.tobs),
            func.max(Measure.tobs)]
 
+    # Build dictionary of station info and temperature statistics as outlined in the above function
     for id, station, name, latitude, longitude, elevation in results:
         station_dict = {}
         station_dict["id"] = id
@@ -246,8 +255,10 @@ def temp_analysis_start(start):
         station_dict["TMIN"] = station_stats[0][0]
         station_dict["TAVG"] = station_stats[0][1]
         station_dict["TMAX"] = station_stats[0][2]
+    # append dictionary to list "range_data" created above
         range_data.append(station_dict)
 
+    # close session and return range_data in json format
     session.close()
     return jsonify(range_data)
 
@@ -257,19 +268,26 @@ def temp_analysis_startend(start_end):
     """ Fetch min, avg and temperature for range starting with start date
     supplied by the user"""
 
+    # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    # split user input into start and end dates as per format defined on the main page (yyyy-mm-dd_yyyy-mm-dd)
     start = start_end[:10]
     end = start_end[-10:]
 
+    # Query all stations (including id, station, name, latitude, longitude, elevation)
     results = session.query(Station.id, Station.station, Station.name,
                             Station.latitude, Station.longitude, Station.elevation)
 
+    # Create empty list to be populated
     range_data = []
+
+    # Define function for TMIN, TAVG, TMAX from tobs data in Measure
     sel = [func.min(Measure.tobs),
            func.avg(Measure.tobs),
            func.max(Measure.tobs)]
 
+    # Build dictionary of station info and temperature statistics as outlined in the above function
     for id, station, name, latitude, longitude, elevation in results:
         station_dict = {}
         station_dict["id"] = id
@@ -286,8 +304,10 @@ def temp_analysis_startend(start_end):
         station_dict["TMIN"] = station_stats[0][0]
         station_dict["TAVG"] = station_stats[0][1]
         station_dict["TMAX"] = station_stats[0][2]
+        # append dictionary to list "range_data" created above
         range_data.append(station_dict)
 
+    # close session and return range_data in json format
     session.close()
     return jsonify(range_data)
 
