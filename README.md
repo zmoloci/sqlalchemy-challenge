@@ -1,8 +1,9 @@
 # sqlalchemy-challenge
-###Module 10 Challenge
+### Module 10 Challenge
 
+#### Congratulations! You've decided to treat yourself to a long holiday vacation in Honolulu, Hawaii. To help with your trip planning, you decide to do a climate analysis about the area. The following sections outline the steps that taken to accomplish this task.
 
-##First steps:
+## First steps:
 
 - Created [this repository](https://github.com/zmoloci/sqlalchemy-challenge) for the project.
 
@@ -11,47 +12,107 @@
 - Inside [this repository](https://github.com/zmoloci/sqlalchemy-challenge), the [SurfsUp](https://github.com/zmoloci/sqlalchemy-challenge/tree/main/SurfsUp) directory was created to house the [Resources folder](https://github.com/zmoloci/sqlalchemy-challenge/tree/main/SurfsUp/Resources), [Jupyter notebook (climate_starter.ipynb)](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/climate_starter.ipynb) and [Flask](https://flask.palletsprojects.com/en/2.2.x/) [app file (app.py)](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/app.py).
 
 - The [Jupyter notebook (climate_starter.ipynb)](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/climate_starter.ipynb) and [app file (app.py)](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/app.py) contain the main scripts to run for analysis.
-- The [Resources folder](https://github.com/zmoloci/sqlalchemy-challenge/tree/main/SurfsUp/Resources) contains the data files ([hawaii.sqlite](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii.sqlite), [hawaii_measurements.csv]([hawaii_measurements.csv](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii_measurements.csv) and [hawaii_stations.csv](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii_stations.csv)) used for this challenge.
+- The [Resources folder](https://github.com/zmoloci/sqlalchemy-challenge/tree/main/SurfsUp/Resources) contains the data files ([hawaii.sqlite](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii.sqlite), [hawaii_measurements.csv](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii_measurements.csv) and [hawaii_stations.csv](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii_stations.csv)) used for this challenge.
 
-- Changes were regularly pushed to [GitHub](https://github.com/zmoloci/sqlalchemy-challenge)
+- Changes were regularly pushed to [GitHub](https://github.com/zmoloci/sqlalchemy-challenge).
 
 |----------|
 
 
-Module 10 Challenge filesLinks to an external site.
+## Part 1: Analyze and Explore the Climate Data
+In this section, Python and SQLAlchemy are used to do a basic climate analysis and data exploration of your climate database. Specifically, SQLAlchemy ORM queries, Pandas, and Matplotlib were used to complete the following steps:
 
-Instructions
-Congratulations! You've decided to treat yourself to a long holiday vacation in Honolulu, Hawaii. To help with your trip planning, you decide to do a climate analysis about the area. The following sections outline the steps that you need to take to accomplish this task.
+- The provided [hawaii.sqlite](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii.sqlite) was used to complete the climate analysis and data exploration.
 
-Part 1: Analyze and Explore the Climate Data
-In this section, you’ll use Python and SQLAlchemy to do a basic climate analysis and data exploration of your climate database. Specifically, you’ll use SQLAlchemy ORM queries, Pandas, and Matplotlib. To do so, complete the following steps:
+- SQLAlchemy create_engine() function was used  to connect to the SQLite database ([hawaii.sqlite](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii.sqlite)).<br/>
 
-Note that you’ll use the provided files (climate_starter.ipynb and hawaii.sqlite) to complete your climate analysis and data exploration.
+`engine = create_engine("sqlite:///./Resources/hawaii.sqlite", echo=False)`
 
-Use the SQLAlchemy create_engine() function to connect to your SQLite database.
+- The SQLAlchemy automap_base() function was used to reflect tables into classes, and then references were saved to the classes named station and measurement.<br/>
 
-Use the SQLAlchemy automap_base() function to reflect your tables into classes, and then save references to the classes named station and measurement.
+`Base = automap_base()`<br/>
+`Base.prepare(autoload_with=engine)`<br/>
+`Base.classes.keys()`<br/>
+`Measure = Base.classes.measurement`<br/>
+`Station = Base.classes.station`<br/>
 
-Link Python to the database by creating a SQLAlchemy session.
 
-IMPORTANT
-Remember to close your session at the end of your notebook.
 
-Perform a precipitation analysis and then a station analysis by completing the steps in the following two subsections.
+- Python was then linked to the database by creating a SQLAlchemy session.<br/>
 
-Precipitation Analysis
-Find the most recent date in the dataset.
+`session = Session(engine)`
 
-Using that date, get the previous 12 months of precipitation data by querying the previous 12 months of data.
+## Part 1A: Exploratory Precipitation Analysis
 
-HINT
-Select only the "date" and "prcp" values.
+A precipitation analysis and then a station analysis were performed by completing the steps in the following two subsections.
+---
+### Precipitation Analysis
+---
+### Find the most recent date in the dataset:
+- First, the column headers in the Measure dataset were displayed:
 
-Load the query results into a Pandas DataFrame, and set the index to the "date" column.
+`first_row = session.query(Measure).first()`<br/>
+`first_row.__dict__`
 
-Sort the DataFrame values by "date".
+- An alternate method using [sqlalchemy.inspection](https://www.fullstackpython.com/sqlalchemy-inspection-inspect-examples.html) to examine the column headers as well as data types was also displayed:<br/>
 
-Plot the results by using the DataFrame plot method, as the following image shows:
+`inspector = inspect(engine)`<br/>
+
+`for tables in inspector.get_table_names():`<br/>
+    `print(f"'{tables}' column headers (TYPE):")`<br/>
+    `print("    ")`<br/>
+    `columns = inspector.get_columns(tables)`<br/>
+    `for c in columns:`<br/>
+    `   print(f'{c["name"]} ({c["type"]})')`<br/>
+    `print("----------------")`<br/>
+    `print("   ")`<br/>
+
+- The most recent date was then retrieved, by sorting the Measure dataset by the date in descending order and displaying the first date:<br/>
+
+`recent_date = session.query(Measure).order_by((Measure.date).desc()).first()`<br/>
+`recent_date.date`<br/>
+
+---
+- Using that date, the previous 12 months of precipitation data were retrieved by querying the previous 12 months of data.
+
+- First the date for 12 months before the most recent data was calculated:<br/>
+
+`yr_ago = (dt.strptime(recent_date.date, '%Y-%m-%d'))+relativedelta(years=-1)`<br/>
+
+- Then a query was performed to retrieve date and precipitation values:<br/>
+
+`last_yr_precip = session.query(Measure).filter(Measure.date >= yr_ago).order_by((Measure.date).desc()).all()`<br/>
+
+- This data was then compiled into two lists and then into a DataFrame (using [Pandas](https://pandas.pydata.org/docs/), where it was sorted and NaN precipitation values were cleaned:<br/>
+
+`measuredate=[]`<br/>
+`precip=[]`<br/>
+
+`for row in last_yr_precip:`<br/>
+`    measuredate.append(row.date)`<br/>
+`    precip.append(row.prcp)`<br/>
+
+`last_yr_precip_df = pd.DataFrame({'Date': measuredate,`<br/>
+`    'Precipitation':precip}).set_index('Date')`<br/>
+
+`last_yr_precip_df.sort_index(inplace=True)`<br/>
+
+`clean_last_year = last_yr_precip_df.dropna()`<br/>
+`print(clean_last_year)`<br/>
+
+- The precipitation values were then summed across all stations for each date:<br/>
+`gb=clean_last_year.groupby('Date')['Precipitation'].sum().reset_index(name='Precipitation')`<br/>
+
+- and the frequencies of each temperature value were plotted by ascending date using Pandas Plotting with Matplotlib:<br/>
+`fig, ax = plt.subplots()`<br/>
+`ax.bar(gb['Date'],gb['Precipitation'])`<br/>
+`plt.xlabel("Date")`<br/>
+`plt.ylabel("inches")`<br/>
+`plt.xticks(np.arange(0,len(gb['Date']),29.5),rotation=90)`<br/>
+`plt.legend(['Precipitation'])`<br/>
+`plt.show()`<br/>
+
+---
 
 A screenshot depicts the plot.
 Use Pandas to print the summary statistics for the precipitation data.
