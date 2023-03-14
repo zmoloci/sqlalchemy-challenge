@@ -112,13 +112,32 @@ A precipitation analysis and then a station analysis were performed by completin
 `plt.legend(['Precipitation'])`<br/>
 `plt.show()`<br/>
 
+|----------------|
+![1-year precipitation data across all stations](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/Figures/fig1.png)
+|----------------|
+
+<br/>
+- Then the 1-year precipitation data was analyzed using [pandas.describe](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.describe.html) and summary statistics were displayed:<br/>
+`gb.describe()`<br/>
+
+---
+## Part 1B: Exploratory Station Analysis
+
+---
+### Station Analysis
+
+
+- First the Measure data was queried in order to calculate the total number of stations in the dataset:<br/>
+`len(session.query(Station.station).group_by(Station.station).all())`<br/>
+
+``<br/>
+``<br/>
+``<br/>
+``<br/>
+``<br/>
+``<br/>
 ---
 
-A screenshot depicts the plot.
-Use Pandas to print the summary statistics for the precipitation data.
-
-Station Analysis
-Design a query to calculate the total number of stations in the dataset.
 
 Design a query to find the most-active stations (that is, the stations that have the most rows). To do so, complete the following steps:
 
