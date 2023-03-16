@@ -227,7 +227,7 @@ A query was designed to get the previous 12 months of temperature observation (T
 <br/>
 
 - Plot the results as a histogram with bins=12, as the following image shows:<br/>
-- Created 12 equal width bins on temperature using min, max values
+- Created 12 equal width bins on temperature using min, max values<br/>
 `bins = []`<br/>
 `labels = []`<br/>
 `for i in range(0,13):`<br/>
@@ -236,12 +236,12 @@ A query was designed to get the previous 12 months of temperature observation (T
         `labels.append(f'{bins[i-1]:.1f}-{bins[i]:.1f}')`<br/>
 `gbt['bin'] = pd.cut(gbt['Temperature'], bins=bins, labels=labels)`<br/>
 
-- Groupby on bins
+- Groupby on bins<br/>
 `gbt_binned = gbt.groupby('bin')['Days'].sum().reset_index(name='Days')`<br/>
 `gbt_binned.columns = ['Temperature','Days']`<br/>
 `print(gbt_binned)`<br/>
 
-- Plot frequency of temperature readings as histogram including xlabel, ylabel and legend
+- Plot frequency of temperature readings as histogram including xlabel, ylabel and legend<br/>
 `fig, ax = plt.subplots()`<br/>
 `ax.bar(gbt_binned['Temperature'],gbt_binned['Days'])`<br/>
 `plt.xlabel("Temperature (Degrees Farenheit)")`<br/>
@@ -257,6 +257,7 @@ A query was designed to get the previous 12 months of temperature observation (T
 
 <br/>
 - Close the session<br/>
+
 `session.close()`<br/>
 
 
