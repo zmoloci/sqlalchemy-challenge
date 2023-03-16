@@ -256,10 +256,8 @@ A query was designed to get the previous 12 months of temperature observation (T
 | ----------- |
 
 <br/>
-
-Close your session.
-
-
+- Close the session<br/>
+`session.close()`<br/>
 
 
 
