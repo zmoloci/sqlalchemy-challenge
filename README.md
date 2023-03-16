@@ -151,8 +151,7 @@ Answer the following question: which station id has the greatest number of obser
 `    station.append(row.station)`<br/>
 `    temp.append(row.tobs)`<br/>
 
-`station_activity_df = pd.DataFrame({'id': id,`<br/>
-                                 'station code':station,'temp':temp}).set_index('id')`<br/>
+`station_activity_df = pd.DataFrame({'id': id,'station code':station,'temp':temp}).set_index('id')`<br/>
 
 - Sort the dataframe by date <br/>
 `station_activity_df.sort_index(inplace=True)`<br/>
