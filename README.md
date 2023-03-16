@@ -83,7 +83,7 @@ A precipitation analysis and then a station analysis were performed by completin
 
 `last_yr_precip = session.query(Measure).filter(Measure.date >= yr_ago).order_by((Measure.date).desc()).all()`<br/>
 
-- This data was then compiled into two lists and then into a DataFrame (using [Pandas](https://pandas.pydata.org/docs/), where it was sorted and NaN precipitation values were cleaned:<br/>
+- This data was then compiled into two lists and then into a DataFrame (using [Pandas](https://pandas.pydata.org/docs/)), where it was sorted and NaN precipitation values were cleaned:<br/>
 
 `measuredate=[]`<br/>
 `precip=[]`<br/>
@@ -130,23 +130,45 @@ A precipitation analysis and then a station analysis were performed by completin
 - First the Measure data was queried in order to calculate the total number of stations in the dataset:<br/>
 `len(session.query(Station.station).group_by(Station.station).all())`<br/>
 
-``<br/>
-``<br/>
-``<br/>
-``<br/>
-``<br/>
-``<br/>
+
 ---
 
 
-Design a query to find the most-active stations (that is, the stations that have the most rows). To do so, complete the following steps:
+### Design a query to find the most-active stations (that is, the stations that have the most rows). To do so, complete the following steps:
 
-List the stations and observation counts in descending order.
 
-HINT
-Answer the following question: which station id has the greatest number of observations?
+### List the stations and observation counts in descending order.
+
+Answer the following question: which station id has the greatest number of observations?<br/>
+`station_activity = session.query(Measure).all()`<br/>
+
+`id=[]`<br/>
+`station=[]`<br/>
+`temp=[]`<br/>
+
+`for row in station_activity:`<br/>
+`    id.append(row.id)`<br/>
+`    station.append(row.station)`<br/>
+`    temp.append(row.tobs)`<br/>
+
+`station_activity_df = pd.DataFrame({'id': id,`<br/>
+                                 'station code':station,'temp':temp}).set_index('id')`<br/>
+
+- Sort the dataframe by date <br/>
+`station_activity_df.sort_index(inplace=True)`<br/>
+
+- Remove rows with NaN prcp values and print df<br/>
+`clean_station = station_activity_df.dropna()`<br/>
+
+
+- Groupby 'Date' and print df<br/>
+`gbstat=clean_station.groupby('station code')['temp'].count().reset_index(name='entry count').sort_values(by=['entry count'],ascending=False)`<br/>
+`bstats=gbstat.reset_index(drop=True)`<br/>
+`print(gbstats)`<br/>
+
+---
 Design a query that calculates the lowest, highest, and average temperatures that filters on the most-active station id found in the previous query.
-
+---
 HINT
 Design a query to get the previous 12 months of temperature observation (TOBS) data. To do so, complete the following steps:
 
