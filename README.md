@@ -16,7 +16,7 @@
 
 - Changes were regularly pushed to [GitHub](https://github.com/zmoloci/sqlalchemy-challenge).
 
-|----------|
+---
 
 
 ## Part 1: Analyze and Explore the Climate Data
@@ -112,7 +112,7 @@ A precipitation analysis and then a station analysis were performed by completin
 `plt.legend(['Precipitation'])`<br/>
 `plt.show()`<br/>
 
-|----------------|
+
 ![1-year precipitation data across all stations](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/Figures/fig1.png)
 |----------------|
 
@@ -164,21 +164,76 @@ Answer the following question: which station id has the greatest number of obser
 `gbstat=clean_station.groupby('station code')['temp'].count().reset_index(name='entry count').sort_values(by=['entry count'],ascending=False)`<br/>
 `bstats=gbstat.reset_index(drop=True)`<br/>
 `print(gbstats)`<br/>
+<br/>
+
+| ![fig.2 - Stations by Observation Count (Descending)](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/Figures/fig2.png)|
+| ----------- |
+
+<br/>
+---
+A query was designed that calculates the lowest, highest, and average temperatures and filters on the most-active station id found in the previous query.
+
+`sel = [Measure.station,`<br/>
+       `func.min(Measure.tobs),`<br/>
+       `func.max(Measure.tobs),`<br/>
+       `func.avg(Measure.tobs)]`<br/>
+`USC00519281_temp_stats = session.query(*sel).\`<br/>
+    `filter(Measure.station == "USC00519281").all()`<br/>
+`USC00519281_temp_stats`<br/>
 
 ---
-Design a query that calculates the lowest, highest, and average temperatures that filters on the most-active station id found in the previous query.
----
-HINT
-Design a query to get the previous 12 months of temperature observation (TOBS) data. To do so, complete the following steps:
 
-Filter by the station that has the greatest number of observations.
+A query was designed to get the previous 12 months of temperature observation (TOBS) data by following these steps:
 
-Query the previous 12 months of TOBS data for that station.
+- Filter by the station that has the greatest number of observations, sort by descending date and then return the most recent (first) date<br/>
+`recent_USC00519281_date = session.query(Measure).order_by((Measure.date).desc()).filter(Measure.station == "USC00519281").first()`<br/>
+`recent_USC00519281_date.date`<br/>
 
-Plot the results as a histogram with bins=12, as the following image shows:
+- Calculate the date one year from the last date in the data set<br/>
+
+  `yr_ago = (dt.strptime(recent_USC00519281_date.date, '%Y-%m-%d'))+relativedelta(years=-1)`<br/>
+
+- Query the previous 12 months of TOBS data for that station.<br/>
+  `last_yr_temp = session.query(Measure).filter(Measure.date >= yr_ago).filter(Measure.station == "USC00519281").order_by((Measure.date).desc()).all()`<br/>
+
+  `stationname = []`<br/>
+  `tempmeasuredate=[]`<br/>
+  `temp=[]`<br/>
+
+  `for row in last_yr_temp:`<br/>
+      `# print(row.station,row.date, row.tobs)`<br/>
+      `stationname.append(row.station)`<br/>
+      `tempmeasuredate.append(row.date)`<br/>
+      `temp.append(row.tobs)`<br/>
+
+- Plot the results as a histogram with bins=12, as the following image shows:<br/>
+
+- Sort the dataframe by date
+`last_yr_USC00519281_temp_df = pd.DataFrame({'Date': tempmeasuredate,`<br/>
+                                 `'Temperature':temp})`<br/>
+`last_yr_USC00519281_temp_df.sort_index(inplace=True)`<br/>
+
+- Drop NaN temp measurements
+`clean_last_year_temp = last_yr_USC00519281_temp_df.dropna()`<br/>
+
+- Groupby on Temperature values to give number of days at each temperature over 12 month period
+`gbt=clean_last_year_temp.groupby('Temperature')['Date'].count().reset_index(name='Days')`<br/>
+`print(gbt)`<br/>
+
+<br/>
+
+| ![fig.3 - Frequency of Temperature Readings by Degrees Farenheit](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/Figures/fig3.png)|
+| ----------- |
+
+<br/>
+
 
 A screenshot depicts the histogram.
 Close your session.
+
+
+
+
 
 Part 2: Design Your Climate App
 Now that you’ve completed your initial analysis, you’ll design a Flask API based on the queries that you just developed. To do so, use Flask to create your routes as follows:
