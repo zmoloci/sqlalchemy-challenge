@@ -206,7 +206,6 @@ A query was designed to get the previous 12 months of temperature observation (T
       `tempmeasuredate.append(row.date)`<br/>
       `temp.append(row.tobs)`<br/>
 
-- Plot the results as a histogram with bins=12, as the following image shows:<br/>
 
 - Sort the dataframe by date
 `last_yr_USC00519281_temp_df = pd.DataFrame({'Date': tempmeasuredate,`<br/>
@@ -227,8 +226,37 @@ A query was designed to get the previous 12 months of temperature observation (T
 
 <br/>
 
+- Plot the results as a histogram with bins=12, as the following image shows:<br/>
+- Created 12 equal width bins on temperature using min, max values
+`bins = []`<br/>
+`labels = []`<br/>
+`for i in range(0,13):`<br/>
+    `bins.append((min(gbt['Temperature'])-.01) + (i*(((max(gbt['Temperature'])+.01)-min(gbt['Temperature']))/12)))`<br/>
+    `if i != 0:`<br/>
+        `labels.append(f'{bins[i-1]:.1f}-{bins[i]:.1f}')`<br/>
+`gbt['bin'] = pd.cut(gbt['Temperature'], bins=bins, labels=labels)`<br/>
 
-A screenshot depicts the histogram.
+- Groupby on bins
+`gbt_binned = gbt.groupby('bin')['Days'].sum().reset_index(name='Days')`<br/>
+`gbt_binned.columns = ['Temperature','Days']`<br/>
+`print(gbt_binned)`<br/>
+
+- Plot frequency of temperature readings as histogram including xlabel, ylabel and legend
+`fig, ax = plt.subplots()`<br/>
+`ax.bar(gbt_binned['Temperature'],gbt_binned['Days'])`<br/>
+`plt.xlabel("Temperature (Degrees Farenheit)")`<br/>
+`plt.ylabel("Number of Days")`<br/>
+`plt.xticks(np.arange(0,13,1),rotation=90)`<br/>
+`plt.legend(['tobs'])`<br/>
+`plt.show()`<br/>
+
+<br/>
+
+| ![fig.4 - Histogram of Temperature Readings by Degrees Farenheit](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/Figures/fig4.png)|
+| ----------- |
+
+<br/>
+
 Close your session.
 
 
