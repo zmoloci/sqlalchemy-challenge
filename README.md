@@ -19,7 +19,7 @@
 ---
 
 
-## Part 1: Analyze and Explore the Climate Data
+# Part 1: Analyze and Explore the Climate Data
 In this section, Python and SQLAlchemy are used to do a basic climate analysis and data exploration of your climate database. Specifically, SQLAlchemy ORM queries, Pandas, and Matplotlib were used to complete the following steps:
 
 - The provided [hawaii.sqlite](https://github.com/zmoloci/sqlalchemy-challenge/blob/main/SurfsUp/Resources/hawaii.sqlite) was used to complete the climate analysis and data exploration.
@@ -42,7 +42,7 @@ In this section, Python and SQLAlchemy are used to do a basic climate analysis a
 
 `session = Session(engine)`
 
-## Part 1A: Exploratory Precipitation Analysis
+# Part 1A: Exploratory Precipitation Analysis
 
 A precipitation analysis and then a station analysis were performed by completing the steps in the following two subsections.
 ---
@@ -262,14 +262,14 @@ A query was designed to get the previous 12 months of temperature observation (T
 
 
 
-## Part 2: Design Your Climate App
+# Part 2: Design Your Climate App
 ## Now that you’ve completed your initial analysis, you’ll design a Flask API based on the queries that you just developed. To do so, use Flask to create your routes as follows:
 
-## /
+### `/`<br/>
 
-## Start at the homepage.
+### Start at the homepage.
 
-## List all the available routes.
+### List all the available routes.
 
 ```
 @app.route("/")
@@ -298,11 +298,11 @@ def welcome():
 ```
 
 
-## /api/v1.0/precipitation
+### `/api/v1.0/precipitation`<br/>
 
-## Convert the query results from your precipitation analysis (i.e. retrieve only the last 12 months of data) to a dictionary using date as the key and prcp as the value.
+### Convert the query results from your precipitation analysis (i.e. retrieve only the last 12 months of data) to a dictionary using date as the key and prcp as the value.
 
-## Return the JSON representation of your dictionary.
+### Return the JSON representation of your dictionary.
 
 ```
 @app.route("/api/v1.0/precipitation")
@@ -358,7 +358,7 @@ def precipitation():
 
 ### An alternate route for precipitation data:
 ### returns daily sum of precipitation across all stations by date over last 12 months of the dataset
-
+### `/api/v1.0/sumprecipitation`<br/>
 
 ```
 @app.route("/api/v1.0/sumprecipitation")
@@ -409,7 +409,7 @@ def sumprecipitation():
 ```
 
 
-### /api/v1.0/stations
+### `/api/v1.0/stations`<br/>
 
 ### Return a JSON list of stations from the dataset.
 
@@ -443,7 +443,7 @@ def stations():
 ```
 
 
-### /api/v1.0/tobs
+### `/api/v1.0/tobs`<br/>
 
 ### Query the dates and temperature observations of the most-active station for the previous year of data.
 
@@ -485,7 +485,7 @@ def tobs():
     return jsonify(USC00519281_data)
 ```
 
-### /api/v1.0/<start> and /api/v1.0/<start>/<end>
+### `/api/v1.0/<start>` and `/api/v1.0/<start>/<end>`
   
 ### Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a specified start or start-end range.
 
@@ -540,5 +540,58 @@ def temp_analysis_start(start):
     
     
 ### For a specified start date and end date, calculate TMIN, TAVG, and TMAX for the dates from the start date to the end date, inclusive.
+```
+@app.route("/api/v1.0/start_end/<start_end>")
+def temp_analysis_startend(start_end):
+    """ Fetch min, avg and temperature for range starting with start date
+    supplied by the user"""
 
-### Use the Flask jsonify function to convert your API data to a valid JSON response object.
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    # split user input into start and end dates as per format defined on the main page (yyyy-mm-dd_yyyy-mm-dd)
+    start = start_end[:10]
+    end = start_end[-10:]
+
+    # Query all stations (including id, station, name, latitude, longitude, elevation)
+    results = session.query(Station.id, Station.station, Station.name,
+                            Station.latitude, Station.longitude, Station.elevation)
+
+    # Create empty list to be populated
+    range_data = []
+
+    # Define function for TMIN, TAVG, TMAX from tobs data in Measure
+    sel = [func.min(Measure.tobs),
+           func.avg(Measure.tobs),
+           func.max(Measure.tobs)]
+
+    # Build dictionary of station info and temperature statistics as outlined in the above function
+    for id, station, name, latitude, longitude, elevation in results:
+        station_dict = {}
+        station_dict["id"] = id
+        station_dict["station"] = station
+        station_dict["name"] = name
+        station_dict["latitude"] = latitude
+        station_dict["longitude"] = longitude
+        station_dict["elevation"] = elevation
+        station_stats = []
+        station_stats = session.query(*sel).\
+            filter(Measure.date <= end).\
+            filter(Measure.date >= start).\
+            filter(Measure.station == station).all()
+        station_dict["TMIN"] = station_stats[0][0]
+        station_dict["TAVG"] = station_stats[0][1]
+        station_dict["TMAX"] = station_stats[0][2]
+        # append dictionary to list "range_data" created above
+        range_data.append(station_dict)
+
+    # close session and return range_data in json format
+    session.close()
+    return jsonify(range_data)
+```
+
+## Set entry point for program<br/>
+```
+if __name__ == '__main__':
+    app.run(debug=True)
+```
